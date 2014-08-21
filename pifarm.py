@@ -4,26 +4,31 @@ import requests
 
 def connect(username, password):
   # TODO: add validation
-  url = 'http://pifarm.apphb.com/v1/auth/login'
-  headers = {'content-type': 'application/json'}
-  payload = {'username': username, 'password': password}
+  api = Api()
+  api.connect(username, password)
   
-  r = requests.post(url, data=json.dumps(payload), headers=headers)
-  if r.status_code == requests.codes.ok:
-    account = r.json()
-    
-    return Api(account)
-  else:
-    r.raise_for_status()
+  return api
 
 
 class Api:
   """docstring for Api"""
-  def __init__(self, account):
-    self.sessionToken = account['sessionToken']
+  def __init__(self):
     self.url = 'http://pifarm.apphb.com/v1'
     self.pinaples = PinaplesRepository(self)
+
+  def connect(self, username, password):
+    url = '{0}/auth/login'.format(self.url)
+    headers = {'content-type': 'application/json'}
+    payload = {'username': username, 'password': password}
     
+    response = requests.post(url, data=json.dumps(payload), headers=headers)
+    if response.status_code == requests.codes.ok:
+      self.account = response.json()
+      self.sessionToken = self.account['sessionToken']
+      return self
+    else:
+      response.raise_for_status()  
+
 
 class PinaplesRepository:
   """docstring for PinaplesRepository"""
@@ -35,13 +40,13 @@ class PinaplesRepository:
     url = '{0}/pinaples/{1}'.format(self._api.url, id)
     headers = {'content-type': 'application/json', 'X-Pifarm-Session': self._api.sessionToken}
     
-    r = requests.get(url, headers=headers)
-    if r.status_code == requests.codes.ok:
-      pinaple = r.json()
+    response = requests.get(url, headers=headers)
+    if response.status_code == requests.codes.ok:
+      pinaple = response.json()
       
       return Pinaple(self._api, pinaple['id'], pinaple['name'], pinaple['description'])
     else:
-      r.raise_for_status()
+      response.raise_for_status()
     
 
 
@@ -66,13 +71,13 @@ class StreamsRepository:
     url = '{0}/streams/{1}?pinapleId={2}'.format(self._api.url, id, self._pinapleId)
     headers = {'content-type': 'application/json', 'X-Pifarm-Session': self._api.sessionToken}
     
-    r = requests.get(url, headers=headers)
-    if r.status_code == requests.codes.ok:
-      stream = r.json()
+    response = requests.get(url, headers=headers)
+    if response.status_code == requests.codes.ok:
+      stream = response.json()
       
       return Stream(self._api, stream['id'], stream['name'], stream['description'])
     else:
-      r.raise_for_status()
+      response.raise_for_status()
 
 
 class Stream:
@@ -99,9 +104,9 @@ class ReadingsRepository:
     headers = {'content-type': 'application/json', 'X-Pifarm-Session': self._api.sessionToken}
     payload = {'streamId': self._streamId, 'value': value, 'at': str(at)}
     
-    r = requests.post(url, data=json.dumps(payload), headers=headers)
-    if r.status_code == requests.codes.ok:
+    response = requests.post(url, data=json.dumps(payload), headers=headers)
+    if response.status_code == requests.codes.ok:
       return true
     else:
-      r.raise_for_status()
+      response.raise_for_status()
     
